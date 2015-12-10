@@ -14,7 +14,7 @@ Class['epel'] -> Package<| provider == 'yum' |>
 
 class { 'timezone': timezone  => 'US/Pacific' }
 class { 'tuned': profile      => 'virtual-host' }
-class { 'selinux': mode       => 'disabled' }
+class { 'selinux': mode       => 'enforcing' }
 class { 'firewall': ensure    => 'stopped' }
 resources { 'firewall': purge => true }
 
@@ -54,15 +54,15 @@ if $ssl_cert and $ssl_key {
   $enable_ssl = true
 }
 
-#selboolean { 'httpd_can_network_connect':
-#  value      => on,
-#  persistent => true,
-#}
+selboolean { 'httpd_can_network_connect':
+  value      => on,
+  persistent => true,
+}
 
-#selboolean { 'httpd_setrlimit':
-#  value      => on,
-#  persistent => true,
-#}
+selboolean { 'httpd_setrlimit':
+  value      => on,
+  persistent => true,
+}
 
 # If SSL is enabled and we are catching an DNS cname, we need to redirect to
 # the canonical https URL in one step.  If we do a http -> https redirect, as
@@ -78,10 +78,10 @@ if $enable_ssl {
   file { $private_dir:
     ensure   => directory,
     mode     => '0750',
-    #selrange => 's0',
-    #selrole  => 'object_r',
-    #seltype  => 'httpd_config_t',
-    #seluser  => 'system_u',
+    selrange => 's0',
+    selrole  => 'object_r',
+    seltype  => 'httpd_config_t',
+    seluser  => 'system_u',
   }
 
   exec { 'openssl dhparam -out dhparam.pem 2048':
@@ -93,10 +93,10 @@ if $enable_ssl {
   file { $ssl_dhparam_path:
     ensure   => file,
     mode     => '0400',
-    #selrange => 's0',
-    #selrole  => 'object_r',
-    #seltype  => 'httpd_config_t',
-    #seluser  => 'system_u',
+    selrange => 's0',
+    selrole  => 'object_r',
+    seltype  => 'httpd_config_t',
+    seluser  => 'system_u',
     replace  => false,
     backup   => false,
   }
@@ -105,10 +105,10 @@ if $enable_ssl {
   concat { $ssl_cert_path:
     ensure   => present,
     mode     => '0444',
-    #selrange => 's0',
-    #selrole  => 'object_r',
-    #seltype  => 'httpd_config_t',
-    #seluser  => 'system_u',
+    selrange => 's0',
+    selrole  => 'object_r',
+    seltype  => 'httpd_config_t',
+    seluser  => 'system_u',
     backup   => false,
     before   => Class['::nginx'],
   }
@@ -126,10 +126,10 @@ if $enable_ssl {
   file { $ssl_key_path:
     ensure    => file,
     mode      => '0400',
-    #selrange  => 's0',
-    #selrole   => 'object_r',
-    #seltype   => 'httpd_config_t',
-    #seluser   => 'system_u',
+    selrange  => 's0',
+    selrole   => 'object_r',
+    seltype   => 'httpd_config_t',
+    seluser   => 'system_u',
     content   => $ssl_key,
     backup    => false,
     show_diff => false,
@@ -139,10 +139,10 @@ if $enable_ssl {
   concat { $ssl_root_chain_path:
     ensure   => present,
     mode     => '0444',
-    #selrange => 's0',
-    #selrole  => 'object_r',
-    #seltype  => 'httpd_config_t',
-    #seluser  => 'system_u',
+    selrange => 's0',
+    selrole  => 'object_r',
+    seltype  => 'httpd_config_t',
+    seluser  => 'system_u',
     backup   => false,
     before   => Class['::nginx'],
   }
