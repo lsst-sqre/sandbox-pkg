@@ -189,7 +189,7 @@ if $enable_ssl {
     autoindex      => 'on',
     index_files    => [],
     location_alias => "${root}/public/", # trailing slash required
-    location       => '/eupspkg/',
+    location       => '/eupspkg', # no trailing slash for auto redirect
   }
 
 }
