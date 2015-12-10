@@ -31,8 +31,10 @@ class { '::yum_autoupdate':
   update_cmd   => 'security',
 }
 
-ensure_packages(['git', 'tree', 'vim-enhanced', 'ack'])
-ensure_packages(['rsync'])
+$pkgs = ['git', 'tree', 'vim-enhanced', 'ack', 'rsync']
+ensure_packages($pkgs)
+# ensure_packages() doesn't work correctly with resource collector deps
+Class['epel'] -> Package[$pkgs]
 
 $private_dir         = '/var/private'
 $ssl_cert_path       = "${private_dir}/cert_chain.pem"
