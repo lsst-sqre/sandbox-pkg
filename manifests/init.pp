@@ -9,6 +9,7 @@ include ::nginx
 $user  = 'vagrant'
 $group = 'vagrant'
 $root  = '/opt/lsst/eupspkg'
+$rsync_user = 'eupspkg'
 
 Class['epel'] -> Package<| provider == 'yum' |>
 
@@ -26,15 +27,6 @@ service { 'postfix':
 ensure_packages(['git', 'tree', 'vim-enhanced', 'ack'])
 
 ensure_packages(['rsync'])
-
-file {[
-  '/opt/lsst',
-  '/opt/lsst/eupspkg',
-  '/opt/lsst/eupspkg/public',
-]:
-  ensure => directory,
-  mode   => '0755',
-}
 
 $private_dir         = '/var/private'
 $ssl_cert_path       = "${private_dir}/cert_chain.pem"
@@ -248,4 +240,64 @@ apache::vhost { 'ip.example.com':
       path       => "${root}/public/\$1",
     },
   ],
+}
+
+
+file {[
+  '/opt/lsst',
+]:
+  ensure => directory,
+  mode   => '0755',
+}
+
+file {[
+  '/opt/lsst/eupspkg',
+  '/opt/lsst/eupspkg/public',
+]:
+  ensure => directory,
+  mode   => '0775',
+  owner  => $rsync_user,
+  group  => $rsync_user,
+}
+
+user { $rsync_user:
+  ensure     => present,
+  gid        => $rsync_user,
+  system     => true,
+  managehome => true,
+}
+
+group { $rsync_user:
+  ensure => present,
+  system => true,
+}
+
+$rsync_user_ssh = merge(
+  hiera('rsync_user_ssh_authorized_key', undef),
+  {
+    ensure  => present,
+    user    => $rsync_user,
+    options => 'command="${HOME}/.ssh/rsync_only.sh"',
+  }
+)
+
+ensure_resource(
+  'ssh_authorized_key', "${rsync_user}@${rsync_user}", $rsync_user_ssh
+)
+
+$ssh_rsync_only = '#!/bin/bash
+
+if [[ "$SSH_ORIGINAL_COMMAND" == rsync\ --server* ]]; then
+    $SSH_ORIGINAL_COMMAND
+else
+    echo "rejected"
+fi
+'
+
+file { 'rsync_only.sh':
+  ensure  => file,
+  path    => "/home/${rsync_user}/.ssh/rsync_only.sh",
+  content => $ssh_rsync_only,
+  # relying on the ssh_authorized_key resource to create $HOME/.ssh
+  require => Ssh_authorized_key['eupspkg@eupspkg'],
 }
