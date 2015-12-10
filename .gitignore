@@ -1,0 +1,13 @@
+.bundle
+hieradata/common.yaml
+keys/
+.librarian
+modules
+*.orig
+*.patch
+pkg/
+*.rej
+*.swp
+tmp
+.tmp
+.vagrant

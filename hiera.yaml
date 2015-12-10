@@ -1,0 +1,10 @@
+---
+:backends:
+  - yaml
+:yaml:
+  :datadir: /tmp/vagrant-puppet/hieradata/
+:hierarchy:
+  - "%{::hostname}"
+  - common
+:logger: console
+
