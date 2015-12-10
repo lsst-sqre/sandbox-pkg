@@ -24,8 +24,14 @@ service { 'postfix':
   enable => false,
 }
 
-ensure_packages(['git', 'tree', 'vim-enhanced', 'ack'])
+class { '::yum_autoupdate':
+  exclude      => ['kernel*', 'nginx'],
+  notify_email => false,
+  action       => 'apply',
+  update_cmd   => 'security',
+}
 
+ensure_packages(['git', 'tree', 'vim-enhanced', 'ack'])
 ensure_packages(['rsync'])
 
 $private_dir         = '/var/private'

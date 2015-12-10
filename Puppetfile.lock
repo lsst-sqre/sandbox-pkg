@@ -28,6 +28,14 @@ FORGE
     thias-tuned (1.0.2)
 
 GIT
+  remote: https://github.com/jhoblitt/aco-yum_autoupdate.git
+  ref: bugfix/operatingsystemmajrelease-is-a-string
+  sha: bed2c07e369e0a1cfd10a6d1dc91a827c62dc43d
+  specs:
+    aco-yum_autoupdate (0.6.1)
+      puppetlabs-stdlib (< 5.0.0, >= 1.0.0)
+
+GIT
   remote: https://github.com/puppetlabs/puppetlabs-concat.git
   ref: fd4f1e2d46a86f1659da420f4ce042882d38e021
   sha: fd4f1e2d46a86f1659da420f4ce042882d38e021
@@ -36,6 +44,7 @@ GIT
       puppetlabs-stdlib (< 5.0.0, >= 3.2.0)
 
 DEPENDENCIES
+  aco-yum_autoupdate (>= 0)
   camptocamp-augeas (~> 1.4)
   jfryman-nginx (~> 0.2.7)
   jfryman-selinux (~> 0.2.3)

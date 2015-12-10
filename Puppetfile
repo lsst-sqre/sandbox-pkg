@@ -17,3 +17,7 @@ mod 'puppetlabs/apache', '~> 1.7'
 mod 'puppetlabs/concat',
   :git => 'https://github.com/puppetlabs/puppetlabs-concat.git',
   :ref => 'fd4f1e2d46a86f1659da420f4ce042882d38e021'
+
+mod 'aco/yum_autoupdate',
+  :git => 'https://github.com/jhoblitt/aco-yum_autoupdate.git',
+  :ref => 'bugfix/operatingsystemmajrelease-is-a-string'
