@@ -173,7 +173,7 @@ if $enable_ssl {
     ssl_stapling_verify  => true,
     ssl_trusted_cert     => $ssl_root_chain_path,
     resolver             => [ '8.8.8.8', '4.4.4.4'],
-    #add_header           => $add_header,
+    add_header           => $add_header,
     raw_prepend          => $raw_prepend,
     autoindex            => 'on',
     use_default_location => false,
