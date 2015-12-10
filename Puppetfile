@@ -11,6 +11,7 @@ mod 'saz/timezone', '~> 3.3.0'
 mod 'puppetlabs/ntp', '~> 3.3.0'
 mod 'juniorsysadmin/irqbalance', '~> 1.0.4'
 mod 'thias/tuned', '~> 1.0.2'
+mod 'puppetlabs/apache', '~> 1.7'
 
 # https://github.com/puppetlabs/puppetlabs-concat/pull/361
 mod 'puppetlabs/concat',

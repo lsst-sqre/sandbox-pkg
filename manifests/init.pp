@@ -181,15 +181,36 @@ if $enable_ssl {
     www_root             => "${root}",
   }
 
-  nginx::resource::location { "${name}_root":
-    ensure         => present,
-    vhost          => "${www_host}-ssl",
-    ssl            => true,
-    ssl_only       => true,
-    autoindex      => 'on',
-    index_files    => [],
-    location_alias => "${root}/public/", # trailing slash required
-    location       => '/eupspkg', # no trailing slash for auto redirect
+  nginx::resource::upstream { 'apache-eupspkg':
+    ensure  => present,
+    members => [
+      '127.0.0.1:8080',
+    ],
+  }
+
+  # eups distrib parses the apache directory index HTML format so we are
+  # proxying from nginx -> apache to provide the expected format
+  nginx::resource::location { "${name}-eupspkg":
+    ensure                => present,
+    vhost                 => "${www_host}-ssl",
+    ssl                   => true,
+    ssl_only              => true,
+    location              => '/eupspkg', # no trailing slash for auto redirect
+    proxy                 => 'http://apache-eupspkg',
+    proxy_redirect        => 'default',
+    proxy_connect_timeout => '30',
+  }
+
+  # apache directory listing refers to images under /icons
+  nginx::resource::location { "${name}-eupspkg-icons":
+    ensure                => present,
+    vhost                 => "${www_host}-ssl",
+    ssl                   => true,
+    ssl_only              => true,
+    location              => '/icons', # no trailing slash for auto redirect
+    proxy                 => 'http://apache-eupspkg',
+    proxy_redirect        => 'default',
+    proxy_connect_timeout => '30',
   }
 
 }
@@ -211,4 +232,20 @@ nginx::resource::vhost { $www_host:
     true     => $raw_prepend,
     default  => undef,
   },
+}
+
+class { 'apache':
+  default_vhost => false,
+}
+
+apache::vhost { 'ip.example.com':
+  ip      => '127.0.0.1',
+  port    => '8080',
+  docroot => "${root}/public/",
+  aliases          => [
+    {
+      aliasmatch => '^/eupspkg(.*)$',
+      path       => "${root}/public/\$1",
+    },
+  ],
 }

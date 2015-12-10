@@ -1,0 +1,52 @@
+FORGE
+  remote: https://forgeapi.puppetlabs.com
+  specs:
+    camptocamp-augeas (1.4.2)
+      puppetlabs-stdlib (< 5.0.0, >= 3.2.0)
+    jfryman-nginx (0.2.7)
+      puppetlabs-apt (< 3.0.0, >= 1.8.0)
+      puppetlabs-concat (< 2.0.0, >= 1.1.1)
+      puppetlabs-stdlib (< 5.0.0, >= 4.2.0)
+    jfryman-selinux (0.2.6)
+      puppetlabs-stdlib (>= 0)
+    jhoblitt-sysstat (1.1.0)
+    juniorsysadmin-irqbalance (1.0.4)
+      puppetlabs-stdlib (< 5.0.0, >= 3.0.0)
+    puppetlabs-apache (1.7.1)
+      puppetlabs-concat (< 2.0.0, >= 1.1.1)
+      puppetlabs-stdlib (< 5.0.0, >= 2.4.0)
+    puppetlabs-apt (2.2.1)
+      puppetlabs-stdlib (< 5.0.0, >= 4.5.0)
+    puppetlabs-firewall (1.5.0)
+    puppetlabs-ntp (3.3.0)
+      puppetlabs-stdlib (< 5.0.0, >= 3.2.0)
+    puppetlabs-stdlib (4.9.1)
+    saz-timezone (3.3.0)
+      puppetlabs-stdlib (>= 2.3.0)
+    stahnma-epel (1.2.2)
+      puppetlabs-stdlib (>= 3.0.0)
+    thias-tuned (1.0.2)
+
+GIT
+  remote: https://github.com/puppetlabs/puppetlabs-concat.git
+  ref: fd4f1e2d46a86f1659da420f4ce042882d38e021
+  sha: fd4f1e2d46a86f1659da420f4ce042882d38e021
+  specs:
+    puppetlabs-concat (1.2.4)
+      puppetlabs-stdlib (< 5.0.0, >= 3.2.0)
+
+DEPENDENCIES
+  camptocamp-augeas (~> 1.4)
+  jfryman-nginx (~> 0.2.7)
+  jfryman-selinux (~> 0.2.3)
+  jhoblitt-sysstat (~> 1.1)
+  juniorsysadmin-irqbalance (~> 1.0.4)
+  puppetlabs-apache (~> 1.7)
+  puppetlabs-concat (>= 0)
+  puppetlabs-firewall (~> 1.5.0)
+  puppetlabs-ntp (~> 3.3.0)
+  puppetlabs-stdlib (>= 0)
+  saz-timezone (~> 3.3.0)
+  stahnma-epel (~> 1.1)
+  thias-tuned (~> 1.0.2)
+
