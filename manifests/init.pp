@@ -305,6 +305,7 @@ fi
 file { 'rsync_only.sh':
   ensure  => file,
   path    => "/home/${rsync_user}/.ssh/rsync_only.sh",
+  mode    => '0755',
   content => $ssh_rsync_only,
   # relying on the ssh_authorized_key resource to create $HOME/.ssh
   require => Ssh_authorized_key['eupspkg@eupspkg'],
