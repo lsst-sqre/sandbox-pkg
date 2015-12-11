@@ -8,7 +8,8 @@ include ::nginx
 
 $user  = 'vagrant'
 $group = 'vagrant'
-$root  = '/opt/lsst/eupspkg'
+$eupspkg_root  = '/opt/lsst/eupspkg'
+$doxygen_root  = '/opt/lsst/doxygen'
 $rsync_user = 'eupspkg'
 
 Class['epel'] -> Package<| provider == 'yum' |>
@@ -46,9 +47,14 @@ $ssl_chain_cert      = hiera('ssl_chain_cert', undef)
 $ssl_root_cert       = hiera('ssl_root_cert', undef)
 $ssl_key             = hiera('ssl_key', undef)
 $add_header          = hiera('add_header', undef)
-$www_host            = hiera('www_host', 'pkg')
-$access_log          = "/var/log/nginx/${www_host}.access.log"
-$error_log           = "/var/log/nginx/${www_host}.error.log"
+
+$eupspkg_host       = hiera('eupspkg_host', 'eupspkg-test')
+$eupspkg_access_log = "/var/log/nginx/${eupspkg_host}.access.log"
+$eupspkg_error_log  = "/var/log/nginx/${eupspkg_host}.error.log"
+
+$doxygen_host       = hiera('doxygen_host', 'doxygen-test')
+$doxygen_access_log = "/var/log/nginx/${doxygen_host}.access.log"
+$doxygen_error_log  = "/var/log/nginx/${doxygen_host}.error.log"
 
 if $ssl_cert and $ssl_key {
   $enable_ssl = true
@@ -68,9 +74,15 @@ selboolean { 'httpd_setrlimit':
 # the canonical https URL in one step.  If we do a http -> https redirect, as
 # is enabled by puppet-nginx's rewrite_to_https param, the the U-A will catch
 # a certificate error before getting to the redirect to the canonical name.
-$raw_prepend = [
-  "if ( \$host != \'${www_host}\' ) {",
-  "  return 301 https://${www_host}\$request_uri;",
+$eupspkg_raw_prepend = [
+  "if ( \$host != \'${eupspkg_host}\' ) {",
+  "  return 301 https://${eupspkg_host}\$request_uri;",
+  '}',
+]
+
+$doxygen_raw_prepend = [
+  "if ( \$host != \'${doxygen_host}\' ) {",
+  "  return 301 https://${doxygen_host}\$request_uri;",
   '}',
 ]
 
@@ -157,13 +169,14 @@ if $enable_ssl {
     content => $ssl_root_cert,
   }
 
-  nginx::resource::vhost { "${www_host}-ssl":
+  nginx::resource::vhost { "${eupspkg_host}-ssl":
     ensure               => present,
+    server_name          => [$eupspkg_host],
     listen_port          => 443,
     ssl                  => true,
     rewrite_to_https     => false,
-    access_log           => $access_log,
-    error_log            => $error_log,
+    access_log           => $eupspkg_access_log,
+    error_log            => $eupspkg_error_log,
     ssl_key              => $ssl_key_path,
     ssl_cert             => $ssl_cert_path,
     ssl_dhparam          => $ssl_dhparam_path,
@@ -174,11 +187,10 @@ if $enable_ssl {
     ssl_trusted_cert     => $ssl_root_chain_path,
     resolver             => [ '8.8.8.8', '4.4.4.4'],
     add_header           => $add_header,
-    raw_prepend          => $raw_prepend,
-    autoindex            => 'on',
+    raw_prepend          => $eupspkg_raw_prepend,
     use_default_location => false,
     index_files          => [],
-    www_root             => "${root}",
+    www_root             => $eupspkg_root,
   }
 
   nginx::resource::upstream { 'apache-eupspkg':
@@ -190,47 +202,89 @@ if $enable_ssl {
 
   # eups distrib parses the apache directory index HTML format so we are
   # proxying from nginx -> apache to provide the expected format
+  # NOTE that apache directory listing refers to images under /icons
   nginx::resource::location { "${name}-eupspkg":
     ensure                => present,
-    vhost                 => "${www_host}-ssl",
-    ssl                   => true,
+    vhost                 => "${eupspkg_host}-ssl",
+    ssl                   => true, # only needed for ordering in vhost file
     ssl_only              => true,
-    location              => '/eupspkg', # no trailing slash for auto redirect
+    #location              => '/eupspkg', # no trailing slash for auto redirect
+    location              => '/',
     proxy                 => 'http://apache-eupspkg',
     proxy_redirect        => 'default',
     proxy_connect_timeout => '30',
+    rewrite_rules         => [
+      # strip base path from old sw.lsstcorp.org/eupspkg/ urls that have been
+      # redriected
+      "^/eupspkg(.*)\$ https://${eupspkg_host}\$1 permanent",
+    ]
   }
 
-  # apache directory listing refers to images under /icons
-  nginx::resource::location { "${name}-eupspkg-icons":
-    ensure                => present,
-    vhost                 => "${www_host}-ssl",
-    ssl                   => true,
-    ssl_only              => true,
-    location              => '/icons', # no trailing slash for auto redirect
-    proxy                 => 'http://apache-eupspkg',
-    proxy_redirect        => 'default',
-    proxy_connect_timeout => '30',
+  # doxygen
+  nginx::resource::vhost { "${doxygen_host}-ssl":
+    ensure               => present,
+    server_name          => [$doxygen_host],
+    listen_port          => 443,
+    ssl                  => true,
+    rewrite_to_https     => false,
+    access_log           => $doxygen_access_log,
+    error_log            => $doxygen_error_log,
+    ssl_key              => $ssl_key_path,
+    ssl_cert             => $ssl_cert_path,
+    ssl_dhparam          => $ssl_dhparam_path,
+    ssl_session_timeout  => '1d',
+    ssl_cache            => 'shared:SSL:50m',
+    ssl_stapling         => true,
+    ssl_stapling_verify  => true,
+    ssl_trusted_cert     => $ssl_root_chain_path,
+    resolver             => [ '8.8.8.8', '4.4.4.4'],
+    add_header           => $add_header,
+    raw_prepend          => $doxygen_raw_prepend,
+    autoindex            => 'on',
+    use_default_location => true,
+    index_files          => [],
+    www_root             => $doxygen_root,
   }
 
 }
 
-nginx::resource::vhost { $www_host:
-  ensure                => present,
-  listen_port           => 80,
-  ssl                   => false,
-  access_log            => $access_log,
-  error_log             => $error_log,
-  rewrite_to_https      => $enable_ssl ? {
-    true    => true,
-    default => false,
-  },
+nginx::resource::vhost { $eupspkg_host:
+  ensure               => present,
+  server_name          => [
+    $eupspkg_host,
+    'sw.lsstcorp.org',
+  ],
+  listen_port          => 80,
+  ssl                  => false,
+  access_log           => $eupspkg_access_log,
+  error_log            => $eupspkg_error_log,
+  rewrite_to_https     => false,
   use_default_location => false,
-  index_files => [],
+  index_files          => [],
   # see comment above $raw_prepend declaration
-  raw_prepend           => $enable_ssl ? {
-    true     => $raw_prepend,
-    default  => undef,
+  raw_prepend          => $enable_ssl ? {
+    true    => [
+      "return 301 https://${eupspkg_host}\$request_uri;",
+    ],
+    default => undef,
+  },
+}
+
+nginx::resource::vhost { $doxygen_host:
+  ensure               => present,
+  listen_port          => 80,
+  ssl                  => false,
+  access_log           => $doxygen_access_log,
+  error_log            => $doxygen_error_log,
+  rewrite_to_https     => false,
+  use_default_location => false,
+  index_files          => [],
+  # see comment above $raw_prepend declaration
+  raw_prepend          => $enable_ssl ? {
+    true    => [
+      "return 301 https://${doxygen_host}\$request_uri;",
+    ],
+    default => undef,
   },
 }
 
@@ -238,14 +292,14 @@ class { 'apache':
   default_vhost => false,
 }
 
-apache::vhost { 'ip.example.com':
+apache::vhost { $eupspkg_host:
   ip      => '127.0.0.1',
   port    => '8080',
-  docroot => "${root}/public/",
+  docroot => $eupspkg_root,
   aliases          => [
     {
       aliasmatch => '^/eupspkg(.*)$',
-      path       => "${root}/public/\$1",
+      path       => "${eupspkg_root}/\$1",
     },
   ],
 }
@@ -259,8 +313,8 @@ file {[
 }
 
 file {[
-  '/opt/lsst/eupspkg',
-  '/opt/lsst/eupspkg/public',
+  $eupspkg_root,
+  $doxygen_root,
 ]:
   ensure => directory,
   mode   => '0775',
