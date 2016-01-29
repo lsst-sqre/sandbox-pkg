@@ -8,8 +8,6 @@ include ::nginx
 
 $user  = 'vagrant'
 $group = 'vagrant'
-$eupspkg_root  = '/opt/lsst/eupspkg'
-$doxygen_root  = '/opt/lsst/doxygen'
 $rsync_user = 'eupspkg'
 
 Class['epel'] -> Package<| provider == 'yum' |>
@@ -51,10 +49,17 @@ $add_header          = hiera('add_header', undef)
 $eupspkg_host       = hiera('eupspkg_host', 'eupspkg-test')
 $eupspkg_access_log = "/var/log/nginx/${eupspkg_host}.access.log"
 $eupspkg_error_log  = "/var/log/nginx/${eupspkg_host}.error.log"
+$eupspkg_root       = '/opt/lsst/eupspkg'
 
 $doxygen_host       = hiera('doxygen_host', 'doxygen-test')
 $doxygen_access_log = "/var/log/nginx/${doxygen_host}.access.log"
 $doxygen_error_log  = "/var/log/nginx/${doxygen_host}.error.log"
+$doxygen_root       = '/opt/lsst/doxygen'
+
+$conda_host       = hiera('conda_host', 'conda-test')
+$conda_access_log = "/var/log/nginx/${conda_host}.access.log"
+$conda_error_log  = "/var/log/nginx/${conda_host}.error.log"
+$conda_root       = '/opt/lsst/conda'
 
 if $ssl_cert and $ssl_key {
   $enable_ssl = true
@@ -83,6 +88,12 @@ $eupspkg_raw_prepend = [
 $doxygen_raw_prepend = [
   "if ( \$host != \'${doxygen_host}\' ) {",
   "  return 301 https://${doxygen_host}\$request_uri;",
+  '}',
+]
+
+$conda_raw_prepend = [
+  "if ( \$host != \'${conda_host}\' ) {",
+  "  return 301 https://${conda_host}\$request_uri;",
   '}',
 ]
 
@@ -246,6 +257,31 @@ if $enable_ssl {
     www_root             => $doxygen_root,
   }
 
+  # conda
+  nginx::resource::vhost { "${conda_host}-ssl":
+    ensure               => present,
+    server_name          => [$conda_host],
+    listen_port          => 443,
+    ssl                  => true,
+    rewrite_to_https     => false,
+    access_log           => $conda_access_log,
+    error_log            => $conda_error_log,
+    ssl_key              => $ssl_key_path,
+    ssl_cert             => $ssl_cert_path,
+    ssl_dhparam          => $ssl_dhparam_path,
+    ssl_session_timeout  => '1d',
+    ssl_cache            => 'shared:SSL:50m',
+    ssl_stapling         => true,
+    ssl_stapling_verify  => true,
+    ssl_trusted_cert     => $ssl_root_chain_path,
+    resolver             => [ '8.8.8.8', '4.4.4.4'],
+    add_header           => $add_header,
+    raw_prepend          => $conda_raw_prepend,
+    autoindex            => 'on',
+    use_default_location => true,
+    index_files          => [],
+    www_root             => $conda_root,
+  }
 }
 
 nginx::resource::vhost { $eupspkg_host:
@@ -288,6 +324,25 @@ nginx::resource::vhost { $doxygen_host:
   },
 }
 
+# conda
+nginx::resource::vhost { $conda_host:
+  ensure               => present,
+  listen_port          => 80,
+  ssl                  => false,
+  access_log           => $conda_access_log,
+  error_log            => $conda_error_log,
+  rewrite_to_https     => false,
+  use_default_location => false,
+  index_files          => [],
+  # see comment above $raw_prepend declaration
+  raw_prepend          => $enable_ssl ? {
+    true    => [
+      "return 301 https://${conda_host}\$request_uri;",
+    ],
+    default => undef,
+  },
+}
+
 class { 'apache':
   default_vhost => false,
 }
@@ -296,7 +351,7 @@ apache::vhost { $eupspkg_host:
   ip      => '127.0.0.1',
   port    => '8080',
   docroot => $eupspkg_root,
-  aliases          => [
+  aliases => [
     {
       aliasmatch => '^/eupspkg(.*)$',
       path       => "${eupspkg_root}/\$1",
@@ -315,6 +370,7 @@ file {[
 file {[
   $eupspkg_root,
   $doxygen_root,
+  $conda_root,
 ]:
   ensure => directory,
   mode   => '0775',
